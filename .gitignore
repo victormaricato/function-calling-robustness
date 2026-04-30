@@ -1,24 +1,8 @@
-# LaTeX paper / templates / build — none of this belongs in the public repo
-*.tex
-*.sty
-*.bst
-*.aux
-*.fls
-*.fdb_latexmk
-*.log
-*.out
-*.toc
-*.bbl
-*.blg
-*.synctex.gz
-paper.pdf
-neurips_template/
-
-# Internal docs
-HANDOFF.md
-PLAN.md
-TOP_PAPER_AUDIT.md
-checklist.tex
+# Paper management — anything inside paper/ is local-only and never published.
+# This includes: paper.tex, results_snippet.tex, *.sty/*.bst, figures/,
+# paper_tools/, analysis_outputs/, build artefacts, and any internal docs
+# (HANDOFF.md, PLAN.md, etc.) dropped in.
+paper/
 
 # Python / build
 __pycache__/
@@ -29,20 +13,21 @@ venv/
 build/
 dist/
 *.egg-info/
+.pytest_cache/
+.ruff_cache/
 
-# Generated / scratch
-analysis_outputs/
-figures/
-figures_src/
+# Run-time logs
 logs/
 missfont.log
 
-# Pilot leftovers and backup files
+# Pilot leftovers and backup files (results are otherwise tracked)
 results/pilot*
 results/apibank_frontier.jsonl
 results/apibank_open_weights.jsonl
 results/*.bak
 results/*.before_402_filter*
+results/smoke*
+results/*.stdout.log
 
 # OS / editors / secrets
 .DS_Store
