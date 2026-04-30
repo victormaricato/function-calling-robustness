@@ -1,5 +1,9 @@
 # stale-tools
 
+> Code and per-cell measurement records accompanying
+> **"Tool Names Are a Weak Contract: A Probe of Function-Calling LLMs Under Stale Documentation."**
+> Anonymous submission to NeurIPS 2026, currently under double-blind review.
+
 A controlled probe that injects identifier and description drift into existing
 function-calling tasks at eight graded severity levels and scores the model's
 structured tool call against a four-class behavioural codebook
@@ -89,4 +93,18 @@ tests/                      smoke tests for the perturbation operator and regist
 
 ## Citation
 
-Anonymous double-blind submission; citation metadata will be added after review.
+While the paper is under double-blind review at NeurIPS 2026, please cite as:
+
+```bibtex
+@unpublished{anonymous2026staletools,
+  title  = {Tool Names Are a Weak Contract: A Probe of Function-Calling
+            {LLMs} Under Stale Documentation},
+  author = {Anonymous},
+  year   = {2026},
+  note   = {Submitted to NeurIPS 2026; under double-blind review.
+            Code and per-cell records:
+            \url{https://anonymous.4open.science/r/function-calling-robustness}}
+}
+```
+
+Final author and venue metadata will be added once the review process closes.
