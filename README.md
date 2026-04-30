@@ -71,26 +71,6 @@ uv pip install huggingface_hub
 uv run python -c "from huggingface_hub import snapshot_download; snapshot_download('liminghao1630/API-Bank', repo_type='dataset')"
 ```
 
-## Layout
-
-```
-src/stale_tools/
-├── harness/
-│   ├── perturbations.py    eight-level operator P_l on a tool inventory
-│   ├── tasks.py            BFCL v4 task loader + stratified sampler
-│   ├── apibank_tasks.py    APIBank task loader (HuggingFace cache)
-│   ├── models.py           SOTA + reasoning-effort + size-ladder registries
-│   ├── runner.py           async OpenRouter runner, resumable
-│   ├── judge.py            programmatic four-class codebook scorer
-│   └── settings.py         env-var configuration
-└── cli.py                  ``stale-tools`` argparse entry point
-
-data/                       BFCL v4 task pools and the post-cutoff tasks
-results/                    bundled per-cell JSONL records
-scripts/smoke_test_models.py  one-call sanity check across SOTA + effort variants
-tests/                      smoke tests for the perturbation operator and registry
-```
-
 ## Citation
 
 While the paper is under double-blind review at NeurIPS 2026, please cite as:
