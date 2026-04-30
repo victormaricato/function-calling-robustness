@@ -1,0 +1,52 @@
+# LaTeX paper / templates / build — none of this belongs in the public repo
+*.tex
+*.sty
+*.bst
+*.aux
+*.fls
+*.fdb_latexmk
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.synctex.gz
+paper.pdf
+neurips_template/
+
+# Internal docs
+HANDOFF.md
+PLAN.md
+TOP_PAPER_AUDIT.md
+checklist.tex
+
+# Python / build
+__pycache__/
+*.pyc
+.python-version-local
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+
+# Generated / scratch
+analysis_outputs/
+figures/
+figures_src/
+logs/
+missfont.log
+
+# Pilot leftovers and backup files
+results/pilot*
+results/apibank_frontier.jsonl
+results/apibank_open_weights.jsonl
+results/*.bak
+results/*.before_402_filter*
+
+# OS / editors / secrets
+.DS_Store
+.idea/
+.vscode/
+.env
+.env.local

@@ -1,0 +1,187 @@
+[
+  {
+    "id": "pc_001",
+    "user_query": "I need to fetch the latest training-cluster utilisation metrics from the H200 fleet and have them written to the team's status channel.",
+    "function": [
+      {
+        "name": "h200_fleet_metrics",
+        "description": "Retrieve hourly utilisation, temperature, and idle-percentage metrics for the H200 GPU fleet rolled up by cluster.",
+        "parameters": {"type": "object", "properties": {"cluster_id": {"type": "string"}, "window_hours": {"type": "integer"}}, "required": ["cluster_id"]}
+      },
+      {
+        "name": "post_status_update",
+        "description": "Post a formatted status update to a named channel (Slack-compatible).",
+        "parameters": {"type": "object", "properties": {"channel": {"type": "string"}, "body": {"type": "string"}}, "required": ["channel", "body"]}
+      }
+    ],
+    "gold": [{"h200_fleet_metrics": {"cluster_id": "h200-prod", "window_hours": 24}}]
+  },
+  {
+    "id": "pc_002",
+    "user_query": "Please open a new MCP server registration for our internal payments toolset, name it acme-payments-mcp.",
+    "function": [
+      {
+        "name": "mcp_register_server",
+        "description": "Register a new Model Context Protocol server with the platform registry. The registry resolves server names to TLS endpoints and tool inventories.",
+        "parameters": {"type": "object", "properties": {"server_name": {"type": "string"}, "endpoint": {"type": "string"}}, "required": ["server_name"]}
+      }
+    ],
+    "gold": [{"mcp_register_server": {"server_name": "acme-payments-mcp"}}]
+  },
+  {
+    "id": "pc_003",
+    "user_query": "Run a quick capability sweep against the new GPT-5.5-pro endpoint and tell me if it can handle the long-context summarisation case.",
+    "function": [
+      {
+        "name": "capability_sweep_run",
+        "description": "Execute a fixed capability-sweep harness against an LLM endpoint and return per-capability pass/fail.",
+        "parameters": {"type": "object", "properties": {"endpoint_id": {"type": "string"}, "suite": {"type": "string"}}, "required": ["endpoint_id"]}
+      }
+    ],
+    "gold": [{"capability_sweep_run": {"endpoint_id": "openai/gpt-5.5-pro", "suite": "long_context_summarisation"}}]
+  },
+  {
+    "id": "pc_004",
+    "user_query": "Rebalance the spot allocation on the inference autoscaler in eu-west-3 to favour 30% on-demand.",
+    "function": [
+      {
+        "name": "autoscaler_rebalance",
+        "description": "Adjust the spot/on-demand mix on a regional inference autoscaler. Triggers a rolling rebalance over the next two scaling cycles.",
+        "parameters": {"type": "object", "properties": {"region": {"type": "string"}, "on_demand_fraction": {"type": "number"}}, "required": ["region", "on_demand_fraction"]}
+      }
+    ],
+    "gold": [{"autoscaler_rebalance": {"region": "eu-west-3", "on_demand_fraction": 0.3}}]
+  },
+  {
+    "id": "pc_005",
+    "user_query": "I want to disable the experimental thinking budget on the Sonnet 4.6 deployment for the support tier.",
+    "function": [
+      {
+        "name": "deployment_set_thinking",
+        "description": "Toggle or budget the extended-thinking channel on a hosted-model deployment. Setting budget=0 disables thinking entirely.",
+        "parameters": {"type": "object", "properties": {"deployment_id": {"type": "string"}, "thinking_budget": {"type": "integer"}}, "required": ["deployment_id", "thinking_budget"]}
+      }
+    ],
+    "gold": [{"deployment_set_thinking": {"deployment_id": "sonnet-4.6-support", "thinking_budget": 0}}]
+  },
+  {
+    "id": "pc_006",
+    "user_query": "Pull the current GEPA optimisation trace for the customer-onboarding prompt and show me the Pareto front.",
+    "function": [
+      {
+        "name": "gepa_trace_load",
+        "description": "Load a saved GEPA (Genetic-Pareto) prompt-optimisation trace and return the front of {prompt, score} pairs.",
+        "parameters": {"type": "object", "properties": {"trace_id": {"type": "string"}}, "required": ["trace_id"]}
+      }
+    ],
+    "gold": [{"gepa_trace_load": {"trace_id": "customer_onboarding"}}]
+  },
+  {
+    "id": "pc_007",
+    "user_query": "Promote the staging build of the orchestration agent to canary in the US-West region.",
+    "function": [
+      {
+        "name": "agent_promote",
+        "description": "Promote a built agent artefact from one rollout stage to the next (dev -> staging -> canary -> prod) in a target region.",
+        "parameters": {"type": "object", "properties": {"agent_id": {"type": "string"}, "to_stage": {"type": "string"}, "region": {"type": "string"}}, "required": ["agent_id", "to_stage", "region"]}
+      }
+    ],
+    "gold": [{"agent_promote": {"agent_id": "orchestration", "to_stage": "canary", "region": "us-west"}}]
+  },
+  {
+    "id": "pc_008",
+    "user_query": "Generate an updated SBOM for the model-server image we shipped yesterday.",
+    "function": [
+      {
+        "name": "image_sbom_regenerate",
+        "description": "Regenerate the Software Bill of Materials for a container image, including model weight provenance.",
+        "parameters": {"type": "object", "properties": {"image_ref": {"type": "string"}}, "required": ["image_ref"]}
+      }
+    ],
+    "gold": [{"image_sbom_regenerate": {"image_ref": "model-server:latest"}}]
+  },
+  {
+    "id": "pc_009",
+    "user_query": "I need a fresh provider-routing report for our top 5 OpenRouter slugs, last 7 days.",
+    "function": [
+      {
+        "name": "openrouter_routing_report",
+        "description": "Compile a per-slug provider-routing share report for a given window, useful for reproducibility audits.",
+        "parameters": {"type": "object", "properties": {"slugs": {"type": "array", "items": {"type": "string"}}, "window_days": {"type": "integer"}}, "required": ["slugs"]}
+      }
+    ],
+    "gold": [{"openrouter_routing_report": {"slugs": ["openai/gpt-5.5", "anthropic/claude-opus-4.7", "anthropic/claude-sonnet-4.6", "google/gemini-3.1-pro-preview", "deepseek/deepseek-v4-pro"], "window_days": 7}}]
+  },
+  {
+    "id": "pc_010",
+    "user_query": "Please rotate the Anthropic key on the eval pipeline and seal the old one.",
+    "function": [
+      {
+        "name": "secret_rotate_anthropic",
+        "description": "Rotate the Anthropic API key for a named pipeline and atomically seal the old key in the rotation log.",
+        "parameters": {"type": "object", "properties": {"pipeline_id": {"type": "string"}}, "required": ["pipeline_id"]}
+      }
+    ],
+    "gold": [{"secret_rotate_anthropic": {"pipeline_id": "eval"}}]
+  },
+  {
+    "id": "pc_011",
+    "user_query": "Schedule a re-evaluation of the long-context QA suite against Gemini 3.1 Pro at 8AM tomorrow.",
+    "function": [
+      {
+        "name": "eval_schedule",
+        "description": "Schedule a future eval-suite run against a model endpoint at a given timestamp.",
+        "parameters": {"type": "object", "properties": {"suite": {"type": "string"}, "endpoint_id": {"type": "string"}, "run_at": {"type": "string"}}, "required": ["suite", "endpoint_id", "run_at"]}
+      }
+    ],
+    "gold": [{"eval_schedule": {"suite": "long_context_qa", "endpoint_id": "google/gemini-3.1-pro-preview", "run_at": "tomorrow 08:00"}}]
+  },
+  {
+    "id": "pc_012",
+    "user_query": "Produce a cross-provider failure-mode report for last week's tool-call traffic.",
+    "function": [
+      {
+        "name": "tool_call_failure_report",
+        "description": "Aggregate failure modes (rate-limit, schema-rejection, provider-timeout, etc.) across every provider for a window of tool-call traffic.",
+        "parameters": {"type": "object", "properties": {"window_days": {"type": "integer"}}, "required": ["window_days"]}
+      }
+    ],
+    "gold": [{"tool_call_failure_report": {"window_days": 7}}]
+  },
+  {
+    "id": "pc_013",
+    "user_query": "Push a new Kimi K2.6 routing rule that drops the call to the cheapest hosted provider whenever latency goes over 4 seconds.",
+    "function": [
+      {
+        "name": "router_rule_create",
+        "description": "Create a routing rule on the multi-provider gateway that triggers when a metric crosses a threshold and routes calls to a chosen provider.",
+        "parameters": {"type": "object", "properties": {"slug": {"type": "string"}, "metric": {"type": "string"}, "threshold": {"type": "number"}, "action": {"type": "string"}}, "required": ["slug", "metric", "threshold", "action"]}
+      }
+    ],
+    "gold": [{"router_rule_create": {"slug": "moonshotai/kimi-k2.6", "metric": "latency_seconds", "threshold": 4.0, "action": "drop_cheapest"}}]
+  },
+  {
+    "id": "pc_014",
+    "user_query": "Generate a minimum reproducible failure for the function-calling regression we hit on Wednesday.",
+    "function": [
+      {
+        "name": "incident_minrepro",
+        "description": "Build a minimum reproducible test case from an incident's traces.",
+        "parameters": {"type": "object", "properties": {"incident_id": {"type": "string"}}, "required": ["incident_id"]}
+      }
+    ],
+    "gold": [{"incident_minrepro": {"incident_id": "wed_function_calling_regression"}}]
+  },
+  {
+    "id": "pc_015",
+    "user_query": "Mint a one-time benchmark-replay token for the regression suite.",
+    "function": [
+      {
+        "name": "benchmark_replay_token",
+        "description": "Issue a one-time replay token bound to a registered benchmark suite.",
+        "parameters": {"type": "object", "properties": {"suite_id": {"type": "string"}}, "required": ["suite_id"]}
+      }
+    ],
+    "gold": [{"benchmark_replay_token": {"suite_id": "regression"}}]
+  }
+]
