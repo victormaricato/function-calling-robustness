@@ -23,6 +23,7 @@ from .harness.tasks import stratified_sample as bfcl_stratified
 ALL_LEVELS = list(LEVELS)
 ANCHOR_LEVELS = ["L0", "L3", "L6", "L7"]
 INFORMATIVE_LEVELS = ["L0", "L3", "L6"]
+DIRECTIVE_LEVELS = ["L0", "L8"]  # baseline + directive override only
 
 
 def _probe_models() -> list:
@@ -98,6 +99,13 @@ BLOCKS: dict[str, dict] = {
         models=lambda: SOTA,
         out="apibank_full_levels_pilot",
         concurrency=24,
+    ),
+    "directive": dict(
+        tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
+        levels=DIRECTIVE_LEVELS,
+        models=lambda: SOTA,
+        out="block_d_directive",
+        concurrency=40,
     ),
 }
 

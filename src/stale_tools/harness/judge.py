@@ -76,7 +76,13 @@ def classify(
     Returns a dict with keys:
       called_name, code (correct/wrong-neighbour/hallucinated/abstain),
       selection_correct (bool), arg_f1 (float), detection (bool),
-      hallucinated_obsolete (bool).
+      hallucinated_obsolete (bool), directive_followed (bool).
+
+    `directive_followed` is True when the model called the skill-directed name
+    while that name is present in the inventory — only meaningful at L_8, where
+    the directive points to a tool whose description does not specifically match
+    the query. At all other levels obsolete_name is either equal to the target
+    or absent from the inventory, so this flag stays False there.
     """
     inv_names = _names_in_inventory(pt.inventory)
     detection = _detected(pt, response_text)
@@ -89,6 +95,7 @@ def classify(
             "arg_f1": 0.0,
             "detection": detection,
             "hallucinated_obsolete": False,
+            "directive_followed": False,
         }
 
     call = response_tool_calls[0]  # primary call (BFCL parallel evaluated separately if needed)
@@ -110,10 +117,17 @@ def classify(
             "arg_f1": 0.0,
             "detection": detection,
             "hallucinated_obsolete": is_obsolete,
+            "directive_followed": False,
         }
 
     # 2) In inventory but not the target → wrong neighbour
     if name != pt.target_name:
+        directive_followed = (
+            pt.obsolete_name is not None
+            and name == pt.obsolete_name
+            and pt.obsolete_name in inv_names
+            and pt.obsolete_name != pt.target_name
+        )
         return {
             "called_name": name,
             "code": "wrong-neighbour",
@@ -121,6 +135,7 @@ def classify(
             "arg_f1": 0.0,
             "detection": detection,
             "hallucinated_obsolete": False,
+            "directive_followed": directive_followed,
         }
 
     # 3) Correct name — check arguments against any gold candidate
@@ -142,6 +157,7 @@ def classify(
         "arg_f1": best_f1,
         "detection": detection,
         "hallucinated_obsolete": False,
+        "directive_followed": False,
     }
 
 

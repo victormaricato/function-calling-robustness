@@ -1,9 +1,11 @@
 """Perturbation operators P_ell mapping a clean tool inventory to a perturbed one.
 
 Each level is deterministic given a seed and the clean inventory. We implement
-all 8 levels: L0 (control), L1 (surface re-casing), L2 (synonym rename),
+all 9 levels: L0 (control), L1 (surface re-casing), L2 (synonym rename),
 L3 (org-prefix rename), L4 (description rewrite), L5 (description drift),
-L6 (deprecation marker), L7 (removal + replacement).
+L6 (deprecation marker), L7 (removal + replacement), L8 (directive override
+— skill prescribes a tool whose description does not specifically match the
+query, while a sibling tool's description does).
 
 A "tool inventory" is a list of OpenAI-style tool definitions:
   [{"type": "function", "function": {"name": ..., "description": ..., "parameters": ...}}, ...]
@@ -230,6 +232,28 @@ def _drift_description(seed_str: str) -> str:
     kept (the "true" tool is still there by name), but description-routing should
     fail at this level."""
     return _DRIFT_TEMPLATES[_seed(seed_str + "drift") % len(_DRIFT_TEMPLATES)]
+
+
+_DIRECTIVE_DECOY_TEMPLATES = (
+    "Run a query against the data warehouse and return rows.",
+    "Execute a generic platform action chosen by the caller.",
+    "Look up a record in the system by free-form input.",
+    "Process the user's request by dispatching to a backend service.",
+    "Perform a generic capability call defined by the platform manifest.",
+    "Handle a system operation selected by the caller's intent string.",
+)
+
+
+def _directive_decoy_description(seed_str: str) -> str:
+    """L8: a generic-but-plausibly-superset description for the skill-directed tool.
+
+    The directive tool's description is broader than the user's request, so the
+    description channel does not specifically endorse it. A sibling tool, with the
+    original (specifically matching) description and a renamed identifier, is
+    available alongside. The contrast tests directive-following vs description-
+    matching when the two channels disagree.
+    """
+    return _DIRECTIVE_DECOY_TEMPLATES[_seed(seed_str + "directive") % len(_DIRECTIVE_DECOY_TEMPLATES)]
 
 
 def _org_prefix_rename(name: str, seed_str: str) -> str:
@@ -503,7 +527,43 @@ def perturb(task: dict, level: str, inventory_size: int = 16) -> PerturbedTask:
             False,
         )
 
+    if level == "L8":
+        # Directive override: two candidates compete inside the inventory.
+        #   Tool A (directive-named): identifier is `original_name` so the skill
+        #     instruction citing it lands; description is a generic-superset
+        #     sentence that does NOT specifically match the user's query.
+        #   Tool B (description-match): renamed identifier, original description
+        #     preserved so the description channel specifically endorses it.
+        # Skill instruction prescribes Tool A; gold target is Tool B. The probe
+        # measures whether the model follows the skill directive (calls A) or
+        # the description (calls B).
+        original_desc = target.get("description", "")
+        tool_a = dict(target)
+        tool_a["name"] = original_name
+        tool_a["description"] = _directive_decoy_description(task["id"])
+        new_name = _org_prefix_rename(original_name, task["id"] + "_match")
+        # Avoid pathological collision with the original name in the rare
+        # case the seed hash collides — bump the suffix deterministically.
+        if new_name == original_name:
+            new_name = new_name + "_v2"
+        tool_b = dict(target)
+        tool_b["name"] = new_name
+        tool_b["description"] = original_desc
+        inv = [_to_oai(tool_a), _to_oai(tool_b)] + [_to_oai(f) for f in other_fns]
+        inv += _pad_inventory(target, inventory_size, seed)[1:]
+        skill = _skill_instruction(original_name, original_desc)
+        return PerturbedTask(
+            task["id"],
+            "L8",
+            new_name,
+            original_name,
+            inv[:inventory_size],
+            instruction,
+            skill,
+            False,
+        )
+
     raise ValueError(f"Unsupported level: {level}")
 
 
-LEVELS = ("L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7")
+LEVELS = ("L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")
