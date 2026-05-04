@@ -24,6 +24,7 @@ ALL_LEVELS = list(LEVELS)
 ANCHOR_LEVELS = ["L0", "L3", "L6", "L7"]
 INFORMATIVE_LEVELS = ["L0", "L3", "L6"]
 DIRECTIVE_LEVELS = ["L0", "L8"]  # baseline + directive override only
+L8_ABLATION_LEVELS = ["L8N", "L8I"]  # no-skill and intent-only skill ablations
 
 
 def _probe_models() -> list:
@@ -105,6 +106,13 @@ BLOCKS: dict[str, dict] = {
         levels=DIRECTIVE_LEVELS,
         models=lambda: SOTA,
         out="block_d_directive",
+        concurrency=40,
+    ),
+    "l8-ablation": dict(
+        tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
+        levels=L8_ABLATION_LEVELS,
+        models=lambda: SOTA,
+        out="block_d_l8_ablation",
         concurrency=40,
     ),
 }

@@ -527,23 +527,23 @@ def perturb(task: dict, level: str, inventory_size: int = 16) -> PerturbedTask:
             False,
         )
 
-    if level == "L8":
+    if level in ("L8", "L8N", "L8I"):
         # Directive override: two candidates compete inside the inventory.
         #   Tool A (directive-named): identifier is `original_name` so the skill
         #     instruction citing it lands; description is a generic-superset
         #     sentence that does NOT specifically match the user's query.
         #   Tool B (description-match): renamed identifier, original description
         #     preserved so the description channel specifically endorses it.
-        # Skill instruction prescribes Tool A; gold target is Tool B. The probe
-        # measures whether the model follows the skill directive (calls A) or
-        # the description (calls B).
+        # L8 ablations vary the skill prose only:
+        #   L8  — current default: skill names original_name (the directive).
+        #   L8N — no-skill control: empty skill_instruction.
+        #   L8I — intent-only skill: prose describes the user-intent class but
+        #         names no tool, so the description channel does the routing.
         original_desc = target.get("description", "")
         tool_a = dict(target)
         tool_a["name"] = original_name
         tool_a["description"] = _directive_decoy_description(task["id"])
         new_name = _org_prefix_rename(original_name, task["id"] + "_match")
-        # Avoid pathological collision with the original name in the rare
-        # case the seed hash collides — bump the suffix deterministically.
         if new_name == original_name:
             new_name = new_name + "_v2"
         tool_b = dict(target)
@@ -551,10 +551,15 @@ def perturb(task: dict, level: str, inventory_size: int = 16) -> PerturbedTask:
         tool_b["description"] = original_desc
         inv = [_to_oai(tool_a), _to_oai(tool_b)] + [_to_oai(f) for f in other_fns]
         inv += _pad_inventory(target, inventory_size, seed)[1:]
-        skill = _skill_instruction(original_name, original_desc)
+        if level == "L8":
+            skill = _skill_instruction(original_name, original_desc)
+        elif level == "L8N":
+            skill = ""
+        else:  # L8I
+            skill = _intent_skill_instruction()
         return PerturbedTask(
             task["id"],
-            "L8",
+            level,
             new_name,
             original_name,
             inv[:inventory_size],
@@ -564,6 +569,19 @@ def perturb(task: dict, level: str, inventory_size: int = 16) -> PerturbedTask:
         )
 
     raise ValueError(f"Unsupported level: {level}")
+
+
+def _intent_skill_instruction() -> str:
+    """Skill prose that describes the user-intent contract without naming any tool.
+
+    Used by the L8I ablation to test whether removing identifier-pinning prose
+    while preserving skill-style guidance recovers description-channel routing.
+    """
+    return (
+        "When the user's request requires calling a tool, select the most "
+        "appropriate one from the available inventory based on each tool's "
+        "description and how specifically it matches the request."
+    )
 
 
 LEVELS = ("L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8")
