@@ -1,12 +1,13 @@
 # stale-tools
 
 > Code and per-cell measurement records accompanying
-> **"Tool Names Are a Weak Contract: A Probe of Function-Calling LLMs Under Stale Documentation."**
+> **"Function-Calling LLMs Under Stale Tool Documentation."**
 > Anonymous submission to NeurIPS 2026, currently under double-blind review.
 
-A controlled probe that injects identifier and description drift into existing
-function-calling tasks at eight graded severity levels and scores the model's
-structured tool call against a four-class behavioural codebook
+A controlled probe that injects identifier, description, deprecation, and
+directive-override drift into existing function-calling tasks at nine graded
+severity levels and scores the model's structured tool call against a
+four-class behavioural codebook
 (*correct*, *wrong-neighbour*, *hallucinated*, *abstain*).
 
 The package ships the experiment runner and the per-cell records collected
@@ -37,12 +38,13 @@ Available blocks (`uv run stale-tools run <block>`):
 
 | Block | What it runs |
 |---|---|
-| `breadth` | BFCL v4 sweep across all eight levels and the full SOTA model list |
+| `breadth` | BFCL v4 sweep across all eight $L_0$--$L_7$ levels and the full SOTA model list |
 | `effort` | Reasoning-effort sweep on five base models at four effort settings |
 | `apibank` | APIBank replication at the four anchor levels |
 | `size-ladder` | Within-architecture model-size comparison (Qwen 2.5, Llama 3.1) |
 | `post-cutoff` | Held-out hand-built tasks naming post-cutoff tools |
 | `apibank-pilot` | APIBank at the levels the main replication skips |
+| `directive` | Directive-override block: $L_0$ vs $L_8$ on the BFCL breadth pool, full SOTA list |
 
 Plus a separate `uv run stale-tools inventory-sensitivity --sizes 8 24`
 that sweeps two inventory sizes on a probe-model subset.
@@ -77,8 +79,7 @@ While the paper is under double-blind review at NeurIPS 2026, please cite as:
 
 ```bibtex
 @unpublished{anonymous2026staletools,
-  title  = {Tool Names Are a Weak Contract: A Probe of Function-Calling
-            {LLMs} Under Stale Documentation},
+  title  = {Function-Calling {LLMs} Under Stale Tool Documentation},
   author = {Anonymous},
   year   = {2026},
   note   = {Submitted to NeurIPS 2026; under double-blind review.
