@@ -104,10 +104,16 @@ SOTA: list[ModelSpec] = [
 # parallel 8B vs 70B ladder so the size signal is replicated across two families.
 # All four are non-reasoning so reasoning-vs-scale confounding is removed.
 SIZE_LADDER: list[ModelSpec] = [
-    ModelSpec("Qwen2.5-7B", "qwen/qwen-2.5-7b-instruct", False, "qwen-ladder"),
-    ModelSpec("Qwen2.5-72B", "qwen/qwen-2.5-72b-instruct", False, "qwen-ladder"),
+    # Llama 3.x ladder spans 1B → 70B across two sub-versions trained from
+    # the same base lineage (3.2 1B/3B distilled from 3.1 teachers).
+    ModelSpec("Llama-3.2-1B", "meta-llama/llama-3.2-1b-instruct", False, "llama-ladder"),
+    ModelSpec("Llama-3.2-3B", "meta-llama/llama-3.2-3b-instruct", False, "llama-ladder"),
     ModelSpec("Llama-3.1-8B", "meta-llama/llama-3.1-8b-instruct", False, "llama-ladder"),
     ModelSpec("Llama-3.1-70B", "meta-llama/llama-3.1-70b-instruct", False, "llama-ladder"),
+    # Qwen 3 dense ladder spans 8B → 32B at the same instruct post-training.
+    ModelSpec("Qwen3-8B", "qwen/qwen3-8b", False, "qwen-ladder"),
+    ModelSpec("Qwen3-14B", "qwen/qwen3-14b", False, "qwen-ladder"),
+    ModelSpec("Qwen3-32B", "qwen/qwen3-32b", False, "qwen-ladder"),
 ]
 
 
