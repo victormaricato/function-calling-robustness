@@ -10,7 +10,7 @@ import asyncio
 import sys
 import time
 
-from stale_tools.harness.models import EFFORT_SWEEP, SOTA, ModelSpec
+from stale_tools.harness.models import EFFORT_SWEEP, NEW_SOTA, SOTA, ModelSpec
 from stale_tools.harness.runner import _client
 
 TRIVIAL_TOOL = {
@@ -81,8 +81,23 @@ async def probe(client, m: ModelSpec) -> dict:
 
 async def main():
     client = _client()
+    if "--only-new" in sys.argv:
+        targets: list[ModelSpec] = list(NEW_SOTA)
+        print(f"probing {len(targets)} unique slugs...")
+        results = await asyncio.gather(*(probe(client, m) for m in targets))
+        fail = 0
+        for r in results:
+            if r["ok"]:
+                print(
+                    f"  OK  {r['nick']:24s} {r['slug']:50s} called={r.get('called')} ({r['dt']:.1f}s)"
+                )
+            else:
+                fail += 1
+                print(f"  FAIL {r['nick']:24s} {r['slug']:50s} {r['err']!r}")
+        print(f"\n{len(results) - fail}/{len(results)} OK, {fail} failed")
+        return fail
     # Dedupe by slug for SOTA + 4 representative effort variants per family
-    targets: list[ModelSpec] = list(SOTA)
+    targets: list[ModelSpec] = list(SOTA) + list(NEW_SOTA)
     seen_slugs = {m.slug for m in targets}
     for m in EFFORT_SWEEP:
         # one representative per (slug, effort=med) only — covers the unique payload

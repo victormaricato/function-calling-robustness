@@ -9,9 +9,11 @@ Resumable — rerunning skips successful cells and retries failed ones.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import os
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from openai import AsyncOpenAI
@@ -65,9 +67,12 @@ async def call_one(
                 extra_body[k] = v
 
     t0 = time.time()
+    ts = datetime.now(timezone.utc).isoformat(timespec="seconds")
     last_err = None
     resp = None
+    attempts = 0
     for attempt in range(max_attempts):
+        attempts = attempt + 1
         try:
             resp = await client.chat.completions.create(
                 model=spec.slug,
@@ -97,7 +102,13 @@ async def call_one(
                 or ("no choices" in msg.lower())
             )
             if not transient or attempt == max_attempts - 1:
-                return {"ok": False, "error": last_err, "latency_s": time.time() - t0}
+                return {
+                    "ok": False,
+                    "error": last_err,
+                    "latency_s": time.time() - t0,
+                    "ts": ts,
+                    "attempts": attempts,
+                }
             await asyncio.sleep(min(2**attempt, 16) + (0.1 * attempt))
 
     msg = resp.choices[0].message
@@ -115,6 +126,12 @@ async def call_one(
         reasoning = (msg.model_extra or {}).get("reasoning")
 
     usage = resp.usage
+    # OpenRouter reports the serving provider as a top-level `provider` field on the
+    # response; the OpenAI SDK surfaces unknown fields via model_extra. `resp.model`
+    # is only the slug echoed back — record it separately as response_model.
+    served_by = getattr(resp, "provider", None)
+    if served_by is None and hasattr(resp, "model_extra"):
+        served_by = (resp.model_extra or {}).get("provider")
     return {
         "ok": True,
         "tool_calls": tool_calls,
@@ -122,10 +139,13 @@ async def call_one(
         "reasoning": reasoning,
         "finish_reason": resp.choices[0].finish_reason,
         "latency_s": time.time() - t0,
+        "ts": ts,
+        "attempts": attempts,
         "prompt_tokens": getattr(usage, "prompt_tokens", None),
         "completion_tokens": getattr(usage, "completion_tokens", None),
         "total_tokens": getattr(usage, "total_tokens", None),
-        "provider": resp.model,
+        "provider": served_by,
+        "response_model": resp.model,
     }
 
 
@@ -136,6 +156,7 @@ async def run_block(
     out_path: Path,
     inventory_size: int = 16,
     concurrency: int = 8,
+    seed: int | None = None,
 ) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     excluded_slugs = _env_set("EXCLUDE_MODEL_SLUGS")
@@ -186,6 +207,9 @@ async def run_block(
         pt = perturb(t, lvl, inventory_size)
         async with sem:
             r = await call_one(client, m, pt)
+        inv_hash = hashlib.sha1(
+            json.dumps(pt.inventory, sort_keys=True, ensure_ascii=False).encode()
+        ).hexdigest()[:12]
         rec = {
             "task_id": t["id"],
             "bfcl_category": t.get("_bfcl_category", "unknown"),
@@ -196,8 +220,13 @@ async def run_block(
             "pair_id": m.pair_id,
             "effort": m.effort,
             "inventory_size": inventory_size,
+            "actual_inventory_size": len(pt.inventory),
+            "seed": seed,
+            "inventory_hash": inv_hash,
+            "skill_prose": pt.skill_instruction,
             "target_name": pt.target_name,
             "obsolete_name": pt.obsolete_name,
+            "perturb_meta": pt.meta or None,
             **r,
         }
         line = json.dumps(rec, ensure_ascii=False)

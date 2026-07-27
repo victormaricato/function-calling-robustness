@@ -12,6 +12,61 @@ def _names_in_inventory(inventory: list[dict]) -> set[str]:
     return {t["function"]["name"] for t in inventory if t.get("function")}
 
 
+def _live_target_params(pt: PerturbedTask) -> dict:
+    """The target tool's parameter schema as the model actually saw it."""
+    for t in pt.inventory:
+        fn = t.get("function") or {}
+        if fn.get("name") == pt.target_name:
+            return fn.get("parameters") or {}
+    return {}
+
+
+def _schema_conformance(pt: PerturbedTask, args: dict) -> tuple[bool, bool]:
+    """Score a call's arguments against the LIVE schema (schema-drift levels L9*).
+
+    Returns (schema_valid, stale_args):
+      schema_valid — every live-required param present, every arg name declared in
+        the live properties, and a retyped param (L9C) passed with the new type.
+      stale_args — the call used the pre-drift schema: the renamed-away param name
+        (L9A) or a missing newly-required param (L9B).
+    """
+    params = _live_target_params(pt)
+    props = params.get("properties") or {}
+    required = params.get("required") or []
+    meta = pt.meta or {}
+    schema_valid = all(r in args for r in required)
+    if props:
+        schema_valid = schema_valid and all(k in props for k in args)
+    if meta.get("schema_mode") == "retype" and meta.get("retyped") in args:
+        schema_valid = schema_valid and isinstance(args[meta["retyped"]], str)
+    stale = False
+    if meta.get("renamed_from"):
+        stale = meta["renamed_from"] in args
+    if meta.get("added_required"):
+        stale = stale or meta["added_required"] not in args
+    return schema_valid, stale
+
+
+def _gold_for_live_schema(pt: PerturbedTask, gold: list[dict]) -> list[dict]:
+    """Remap gold arg names onto the live (drifted) schema so arg_f1 stays meaningful.
+
+    Only L9A changes arg names; L9B adds a param gold doesn't know about (scored via
+    schema_valid, not arg_f1) and L9C only changes a declared type (loose string
+    comparison in _arg_match already tolerates "5" vs 5).
+    """
+    meta = pt.meta or {}
+    if meta.get("schema_mode") != "rename" or not meta.get("renamed_from"):
+        return gold
+    out = []
+    for g in gold:
+        fn_name = next(iter(g))
+        inner = dict(g[fn_name])
+        if meta["renamed_from"] in inner:
+            inner[meta["renamed_to"]] = inner.pop(meta["renamed_from"])
+        out.append({fn_name: inner})
+    return out
+
+
 def _arg_match(pred_args: dict, gold_call: dict) -> tuple[bool, float]:
     """Return (all_required_match, per_key_f1).
 
@@ -142,7 +197,7 @@ def classify(
     # Gold is a list of acceptable function-call dicts (BFCL allows multiple gold answers)
     best_f1 = 0.0
     any_required_match = False
-    for g in gold:
+    for g in _gold_for_live_schema(pt, gold):
         # gold dict's key is the ORIGINAL canonical function name; we replace it with the
         # perturbed target name for comparison, since the args dict structure is what matters
         renamed = {pt.target_name: next(iter(g.values()))}
@@ -150,7 +205,7 @@ def classify(
         any_required_match = any_required_match or ok
         best_f1 = max(best_f1, f1)
 
-    return {
+    out = {
         "called_name": name,
         "code": "correct" if any_required_match else "wrong-neighbour",
         "selection_correct": any_required_match,
@@ -159,6 +214,11 @@ def classify(
         "hallucinated_obsolete": False,
         "directive_followed": False,
     }
+    if pt.level.startswith("L9"):
+        schema_valid, stale_args = _schema_conformance(pt, args)
+        out["schema_valid"] = schema_valid
+        out["stale_args"] = stale_args
+    return out
 
 
 def _detected(pt: PerturbedTask, text: str | None) -> bool:

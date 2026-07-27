@@ -24,7 +24,7 @@ missfont.log
 results/pilot*
 results/apibank_frontier.jsonl
 results/apibank_open_weights.jsonl
-results/*.bak
+results/*.bak*
 results/*.before_402_filter*
 results/smoke*
 results/*.stdout.log
