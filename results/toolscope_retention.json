@@ -1,0 +1,27 @@
+{
+  "config": {
+    "inventory_size": 100,
+    "seed": 2026,
+    "embedder": "thenlper/gte-large",
+    "reranker": "cross-encoder/ms-marco-MiniLM-L6-v2",
+    "rerank_pool": 50,
+    "n_tasks": 200
+  },
+  "retention": {
+    "5": {
+      "gold": 0.985,
+      "directive": 0.82,
+      "both": 0.815
+    },
+    "10": {
+      "gold": 1.0,
+      "directive": 0.925,
+      "both": 0.925
+    },
+    "20": {
+      "gold": 1.0,
+      "directive": 0.965,
+      "both": 0.965
+    }
+  }
+}

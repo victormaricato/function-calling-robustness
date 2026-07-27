@@ -1,0 +1,117 @@
+{
+  "seed": 2026,
+  "n_tasks": 175,
+  "summary": {
+    "false_positive_rate_semantics_preserving": 0.0,
+    "recall_drifted_levels": 0.9029,
+    "threshold": 0.5,
+    "note": "L9* (schema drift) is out of scope for a prose-level lint: the skill prose names no parameters, so schema evolution needs a schema-diff lint."
+  },
+  "per_level": {
+    "L0": {
+      "n": 175,
+      "flag_rate": 0.0,
+      "rules": {}
+    },
+    "L1": {
+      "n": 175,
+      "flag_rate": 0.9943,
+      "rules": {
+        "A-missing-identifier": 174
+      }
+    },
+    "L2": {
+      "n": 175,
+      "flag_rate": 0.9943,
+      "rules": {
+        "A-missing-identifier": 174
+      }
+    },
+    "L3": {
+      "n": 175,
+      "flag_rate": 0.9943,
+      "rules": {
+        "A-missing-identifier": 174
+      }
+    },
+    "L4": {
+      "n": 175,
+      "flag_rate": 0.0,
+      "rules": {}
+    },
+    "L5": {
+      "n": 175,
+      "flag_rate": 0.9943,
+      "rules": {
+        "C-description-mismatch": 174
+      }
+    },
+    "L6": {
+      "n": 175,
+      "flag_rate": 0.9943,
+      "rules": {
+        "B-deprecated-reference": 174
+      }
+    },
+    "L7": {
+      "n": 175,
+      "flag_rate": 0.9943,
+      "rules": {
+        "A-missing-identifier": 174
+      }
+    },
+    "L8": {
+      "n": 175,
+      "flag_rate": 0.9943,
+      "rules": {
+        "C-description-mismatch": 174
+      }
+    },
+    "L8S1": {
+      "n": 175,
+      "flag_rate": 0.9943,
+      "rules": {
+        "C-description-mismatch": 174
+      }
+    },
+    "L8S2": {
+      "n": 175,
+      "flag_rate": 0.0,
+      "rules": {}
+    },
+    "L8S4": {
+      "n": 175,
+      "flag_rate": 0.9943,
+      "rules": {
+        "C-description-mismatch": 174
+      }
+    },
+    "L8M": {
+      "n": 175,
+      "flag_rate": 0.9829,
+      "rules": {
+        "C-description-mismatch": 172
+      }
+    },
+    "L8I": {
+      "n": 175,
+      "flag_rate": 0.0,
+      "rules": {}
+    },
+    "L9A": {
+      "n": 175,
+      "flag_rate": 0.0,
+      "rules": {}
+    },
+    "L9B": {
+      "n": 175,
+      "flag_rate": 0.0,
+      "rules": {}
+    },
+    "L9C": {
+      "n": 175,
+      "flag_rate": 0.0,
+      "rules": {}
+    }
+  }
+}
