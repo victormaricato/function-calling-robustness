@@ -99,6 +99,52 @@ SOTA: list[ModelSpec] = [
 ]
 
 
+# ─── Rebuttal roster refresh (July 2026): newest generation per provider ────
+# Additions only — SOTA above stays frozen so previously recorded blocks remain
+# exactly reproducible; SOTA_V2 = SOTA + NEW_SOTA drives the refreshed sweeps.
+NEW_SOTA: list[ModelSpec] = [
+    ModelSpec(
+        "GPT-5.6-Sol",
+        "openai/gpt-5.6-sol",
+        True,
+        "openai",
+        extra_body={"reasoning": {"effort": "medium"}},
+    ),
+    ModelSpec(
+        "GPT-5.6-Luna",
+        "openai/gpt-5.6-luna",
+        True,
+        "openai",
+        extra_body={"reasoning": {"effort": "medium"}},
+    ),
+    ModelSpec(
+        "Opus-5",
+        "anthropic/claude-opus-5",
+        True,
+        "anthropic",
+        extra_body={"reasoning": {"max_tokens": 4000}},
+    ),
+    ModelSpec(
+        "Sonnet-5",
+        "anthropic/claude-sonnet-5",
+        True,
+        "anthropic",
+        extra_body={"reasoning": {"max_tokens": 4000}},
+    ),
+    ModelSpec(
+        "Gemini-3.6-Flash",
+        "google/gemini-3.6-flash",
+        True,
+        "google",
+        extra_body={"reasoning": {"max_tokens": 2000}},
+    ),
+    ModelSpec("GLM-5.2", "z-ai/glm-5.2", True, "zai"),
+    ModelSpec("Qwen3.6-35B-A3B", "qwen/qwen3.6-35b-a3b", True, "qwen"),
+]
+
+SOTA_V2: list[ModelSpec] = SOTA + NEW_SOTA
+
+
 # ─── Block S (size ladder): isolate model-size effect from architecture/training ──
 # Qwen 2.5 spans 7B and 72B at the same instruct post-training; Llama provides a
 # parallel 8B vs 70B ladder so the size signal is replicated across two families.
@@ -177,7 +223,39 @@ EFFORT_SWEEP: list[ModelSpec] = (
 )
 
 
-ALL_MODELS = SOTA + EFFORT_SWEEP + SIZE_LADDER
+ALL_MODELS = SOTA + NEW_SOTA + EFFORT_SWEEP + SIZE_LADDER
+
+
+def _pick(*nicks: str) -> list[ModelSpec]:
+    return [by_nickname(n) for n in nicks]
+
+
+def core_12() -> list[ModelSpec]:
+    """Roster for the rebuttal experiment blocks: the 7 refresh models plus 5
+    continuity anchors from the original SOTA list (incl. DeepSeek-R1, the sole
+    L8 directive holdout)."""
+    return list(NEW_SOTA) + _pick(
+        "GPT-5", "Opus-4.7", "Gemini-3.1-Pro", "DeepSeek-V4-Pro", "DeepSeek-R1"
+    )
+
+
+def schema_pilot() -> list[ModelSpec]:
+    """4-model pilot arm for the schema-drift block (E5)."""
+    return _pick("GPT-5.6-Sol", "Sonnet-5", "DeepSeek-V4-Pro", "Qwen3.6-35B-A3B")
+
+
+def scale_8() -> list[ModelSpec]:
+    """8-model arm for the inventory-scale/crowding block (E4)."""
+    return _pick(
+        "GPT-5.6-Sol",
+        "Sonnet-5",
+        "Gemini-3.6-Flash",
+        "GPT-5",
+        "Opus-4.7",
+        "DeepSeek-V4-Pro",
+        "GLM-5.2",
+        "Qwen3.6-35B-A3B",
+    )
 
 
 def by_nickname(nick: str) -> ModelSpec:
