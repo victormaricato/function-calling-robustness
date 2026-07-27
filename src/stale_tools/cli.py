@@ -14,8 +14,24 @@ import json
 from pathlib import Path
 
 from .harness.apibank_tasks import stratified_sample as apibank_stratified
-from .harness.models import EFFORT_SWEEP, SIZE_LADDER, SOTA, by_nickname
-from .harness.perturbations import LEVELS
+from .harness.models import (
+    EFFORT_SWEEP,
+    SIZE_LADDER,
+    SOTA,
+    SOTA_V2,
+    by_nickname,
+    core_12,
+    scale_8,
+    schema_pilot,
+)
+from .harness.perturbations import (
+    CROWDING_LEVELS,
+    DIRECTIVE_STRENGTH_LEVELS,
+    LEVELS,
+    LINT_WARN_LEVELS,
+    MATCHED_DESC_LEVELS,
+    SCHEMA_DRIFT_LEVELS,
+)
 from .harness.runner import run_block
 from .harness.settings import results_dir
 from .harness.tasks import stratified_sample as bfcl_stratified
@@ -25,6 +41,7 @@ ANCHOR_LEVELS = ["L0", "L3", "L6", "L7"]
 INFORMATIVE_LEVELS = ["L0", "L3", "L6"]
 DIRECTIVE_LEVELS = ["L0", "L8"]  # baseline + directive override only
 L8_ABLATION_LEVELS = ["L8N", "L8I"]  # no-skill and intent-only skill ablations
+SCALE_LEVELS = ["L0", "L4", "L6", "L8"]  # inventory-scale sweep (E4)
 
 
 def _probe_models() -> list:
@@ -62,7 +79,7 @@ BLOCKS: dict[str, dict] = {
     "breadth": dict(
         tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
         levels=ALL_LEVELS,
-        models=lambda: SOTA,
+        models=lambda: SOTA_V2,
         out="block_a_sota",
         concurrency=40,
     ),
@@ -104,15 +121,51 @@ BLOCKS: dict[str, dict] = {
     "directive": dict(
         tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
         levels=DIRECTIVE_LEVELS,
-        models=lambda: SOTA,
+        models=lambda: SOTA_V2,
         out="block_d_directive",
         concurrency=40,
     ),
     "l8-ablation": dict(
         tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
         levels=L8_ABLATION_LEVELS,
-        models=lambda: SOTA,
+        models=lambda: SOTA_V2,
         out="block_d_l8_ablation",
+        concurrency=40,
+    ),
+    # ── Rebuttal blocks ────────────────────────────────────────────────────
+    "directive-strength": dict(  # E1 — U8pb Q1: how strong must the skill prose be?
+        tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
+        levels=list(DIRECTIVE_STRENGTH_LEVELS),
+        models=core_12,
+        out="block_e1_directive_strength",
+        concurrency=40,
+    ),
+    "matched-desc": dict(  # E2 — U8pb Q3: remove the description-quality gap at L8
+        tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
+        levels=list(MATCHED_DESC_LEVELS),
+        models=core_12,
+        out="block_e2_matched_desc",
+        concurrency=40,
+    ),
+    "lint-warn": dict(  # E3 (online half) — xMJB Q4: does a lint warning recover routing?
+        tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
+        levels=list(LINT_WARN_LEVELS),
+        models=core_12,
+        out="block_e3_lint_warn",
+        concurrency=40,
+    ),
+    "crowding": dict(  # E4 (crowding half) — xMJB Q2: near-duplicate siblings at 12 tools
+        tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
+        levels=list(CROWDING_LEVELS),
+        models=scale_8,
+        out="block_e4_crowded",
+        concurrency=40,
+    ),
+    "schema-drift": dict(  # E5 — xMJB Q1: parameter-schema evolution pilot
+        tasks=lambda seed: bfcl_stratified(75, 75, 25, seed=seed),
+        levels=list(SCHEMA_DRIFT_LEVELS),
+        models=schema_pilot,
+        out="block_e5_schema_drift",
         concurrency=40,
     ),
 }
@@ -133,6 +186,7 @@ async def _run_one(name: str, args: argparse.Namespace) -> None:
         out_path=results_dir() / f"{spec['out']}.jsonl",
         inventory_size=args.inventory_size,
         concurrency=args.concurrency or spec["concurrency"],
+        seed=args.seed,
     )
 
 
@@ -141,7 +195,13 @@ async def cmd_run(args: argparse.Namespace) -> None:
 
 
 async def cmd_inventory_sensitivity(args: argparse.Namespace) -> None:
-    """Sweep the inventory-size factor across two probe sizes on a fixed task subset."""
+    """Sweep the inventory-size factor across probe sizes on a fixed task subset.
+
+    Writes to ``block_inv{size}_v2.jsonl``: the original ``block_inv{size}`` files
+    were produced when padding was capped by the 15-entry decoy pool, so sizes
+    above ~16 silently ran at 17-19 tools. The v2 runs use the BFCL-pool padding
+    and record ``actual_inventory_size`` per cell.
+    """
     tasks = bfcl_stratified(40, 25, 10, seed=args.seed)
     probe = _probe_models()
     for inv in args.sizes:
@@ -153,9 +213,30 @@ async def cmd_inventory_sensitivity(args: argparse.Namespace) -> None:
             tasks=tasks,
             levels=INFORMATIVE_LEVELS,
             models=probe,
-            out_path=results_dir() / f"block_inv{inv}.jsonl",
+            out_path=results_dir() / f"block_inv{inv}_v2.jsonl",
             inventory_size=inv,
             concurrency=args.concurrency,
+            seed=args.seed,
+        )
+
+
+async def cmd_inventory_scale(args: argparse.Namespace) -> None:
+    """E4 — inventory-scale sweep: {12, 50, 100} tools × {L0, L4, L6, L8} × 8 models."""
+    tasks = bfcl_stratified(90, 80, 30, seed=args.seed)
+    models = scale_8()
+    for inv in args.sizes:
+        print(
+            f"inventory-scale size={inv}: {len(tasks)} tasks × {len(SCALE_LEVELS)} "
+            f"levels × {len(models)} models = {len(tasks) * len(SCALE_LEVELS) * len(models)} cells"
+        )
+        await run_block(
+            tasks=tasks,
+            levels=SCALE_LEVELS,
+            models=models,
+            out_path=results_dir() / f"block_e4_inv{inv}.jsonl",
+            inventory_size=inv,
+            concurrency=args.concurrency,
+            seed=args.seed,
         )
 
 
@@ -193,6 +274,15 @@ def build_parser() -> argparse.ArgumentParser:
     inv.add_argument("--sizes", type=int, nargs="+", default=[8, 24])
     inv.add_argument("--concurrency", type=int, default=24)
     inv.set_defaults(func=cmd_inventory_sensitivity)
+
+    scale = sub.add_parser(
+        "inventory-scale",
+        help="E4: inventory-scale sweep (12/50/100 tools) over L0/L4/L6/L8 on the 8-model arm",
+    )
+    scale.add_argument("--seed", type=int, default=2026)
+    scale.add_argument("--sizes", type=int, nargs="+", default=[12, 50, 100])
+    scale.add_argument("--concurrency", type=int, default=24)
+    scale.set_defaults(func=cmd_inventory_scale)
 
     return p
 
